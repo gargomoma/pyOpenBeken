@@ -6,9 +6,9 @@ from pyopenbeken import BoardManager, ThreadManager
 # Opening JSON Settings file
 # If using docker might be better to use env variables
 settings = json.load( open('pyOpenBekenSettings.json') )
-host_ip     = settings['host_ip']
+host_ip     = settings['host_ip'] #The server's IP
 gh_api_token = settings['gh_api_token']
-list_ips     = settings['list_ips'] #WIP in scanning IPs, but takes +6min ATM
+list_ips     = settings['list_ips'] #WIP in scanning IPs, but takes +6min ATM, any help is welcome
 
 app = Flask(__name__)
 thmanager = ThreadManager()
@@ -58,4 +58,4 @@ def run_ota_boards():
 #    return Response(generate(), mimetype='text/event-stream')
 
 if __name__ == '__main__':
-    app.run(host=host_ip,port=8051, debug=False)
+    app.run(host=host_ip,port=8998, debug=False)
