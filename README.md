@@ -1,5 +1,5 @@
 # pyOpenBeken
-An easier way to manage your OpenBeken devices.
+An easier way to manage your [OpenBeken](https://github.com/openshwprojects/OpenBK7231T_App) devices.
 
 The purpose of this project is to ease the control of multiple devices avoiding all manual tasks.
 
@@ -17,8 +17,10 @@ The purpose of this project is to ease the control of multiple devices avoiding 
 
 
 ### Examples
+* GitHub Token:
+Nobody likes to get limited by APIs quotas, get your GH API token [here](https://github.com/settings/tokens?type=beta)
 
-Connect to a single board:
+* Connect to a single board:
 ```sh
 import pyopenbeken
 gh_api_token = 'GitHub API Token'
@@ -32,7 +34,7 @@ your_device.check_ota()
 your_device.push_ota(fileAddress)
 ```
 
-Connect to a series of boards by providing a list of IPs:
+* Connect to a series of boards by providing a list of IPs:
 ```sh
 list_ips = [LIST OF IPS]
 gh_api_token = 'GitHub API Token'
