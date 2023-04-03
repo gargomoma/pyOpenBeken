@@ -50,7 +50,7 @@ boardMgr.update_boards()
 #### Web Manager
 Update your boards with just one click.
 * Any help is welcome to make a convinient network scanner and a docker container =)
-![plot](.docs/pyOpenBeken_WebScreenshot.png)
+![plot](docs/pyOpenBeken_WebScreenshot.png)
 
 ### TO DO:
 * Create documentation
