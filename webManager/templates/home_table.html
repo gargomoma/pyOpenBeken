@@ -16,7 +16,7 @@
   <body>
     <center><h2>pyOpenBeken Web Manager</h2></center>
     <div class="button-group">
-      <button onclick="location.href='/scan'">Scan OpenBeken devices</button>
+      <button onclick="location.href='/find_devices'">Scan OpenBeken devices</button>
     </div>
     <form method="post">
       <label for="IPs">IP Addresses:</label>
@@ -28,18 +28,21 @@
           <thead>
             <tr>
               <th>Address</th>
+              <th>WebApp</th>
               <th>Name</th>
               <th>MQTT Topic</th>
               <th>Chipset</th>
               <th>Build</th>
               <th>OTA Available     <button type="submit">Update selected</button></th>
               <th>Files</th>
+              <th>Pins</th>                
             </tr>
           </thead>     
           <tbody>
             {% for ip, row in data.items() %}
               <tr>
                 <td>{{ ip }}</td>
+                <td><a href="http://{{ ip }}" target="_blank">_&#x1F527;_</a></td>                  
                 <td>{{ row['name'] }}</td>
                 <td>{{ row['mqtttopic'] }}</td>
                 <td>{{ row['chipset'] }}</td>
@@ -54,6 +57,7 @@
                     <div id="{{ row['name']+'_'+fname }}" style="display:none">{{ content }}</div>
                     {% endfor %}
                   </td>
+                <td> WIP </td>
               </tr>
             {% endfor %}
           </tbody>
@@ -74,6 +78,8 @@
         <td><a href="{{release['html_url']}}" target="_blank">GitHub</a></td>
       </tr>
     </table>
+    <p>
+    <div id="message">{{message}}</div>
     <!--
     <div id="sse-updates"></div>
       <script>//Include the JavaScript code that listens for SSE updates

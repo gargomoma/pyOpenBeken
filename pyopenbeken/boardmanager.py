@@ -1,8 +1,8 @@
 from .core import device
-from .utils import ThreadManager
+from .utils import ThreadManager,networkScan
 
 class BoardManager:
-    def __init__(self, list_ips,gh_token='',silent=True):
+    def __init__(self, list_ips,gh_token=None,silent=True):
         self.list_ips = list_ips
         self.gh_token = gh_token
         self.is_silent = silent
@@ -28,7 +28,7 @@ class BoardManager:
 
             board_name = boards[board_ip]['obj'].name
             boards[board_ip]['name']= board_name
-            boards[board_ip]['mqtttopic']=boards[board_ip]['obj'].board_info['mqtttopic']
+            boards[board_ip]['mqtttopic']=boards[board_ip]['obj'].info['mqtttopic']
             boards[board_ip]['chipset']=boards[board_ip]['obj'].chipset
             boards[board_ip]['build']=boards[board_ip]['obj'].build
             boards[board_ip]['ota_available']=boards[board_ip]['obj'].ota_available
