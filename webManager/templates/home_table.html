@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>pyOpenBeken</title>
+    <style>
+      td, th {
+        text-align: center;
+        margin-bottom: 10px;
+      }
+      .button-group {
+        display: flex;
+        margin-bottom: 10px;
+      }
+    </style>      
+  </head>
+  <body>
+    <center><h2>pyOpenBeken Web Manager</h2></center>
+    <div class="button-group">
+      <button onclick="location.href='/find_devices'">Scan OpenBeken devices</button>
+    </div>
+    <form method="post">
+      <label for="IPs">IP Addresses:</label>
+      <input type="text" name="IPs" id="IPs" value="{{ ','.join(list_ips) }}">
+      <button type="submit">Refresh</button>
+    </form>
+    <form method="post" action="/update">
+        <table style="width:70%;" border="1">
+          <thead>
+            <tr>
+              <th>Address</th>
+              <th>WebApp</th>
+              <th>Name</th>
+              <th>MQTT Topic</th>
+              <th>Chipset</th>
+              <th>Build</th>
+              <th>OTA Available     <button type="submit">Update selected</button></th>
+              <th>Files</th>
+              <th>Pins</th>                
+            </tr>
+          </thead>     
+          <tbody>
+            {% for ip, row in data.items() %}
+              <tr>
+                <td>{{ ip }}</td>
+                <td><a href="http://{{ ip }}" target="_blank">_&#x1F527;_</a></td>                  
+                <td>{{ row['name'] }}</td>
+                <td>{{ row['mqtttopic'] }}</td>
+                <td>{{ row['chipset'] }}</td>
+                <td>{{ row['build'] }}</td>
+                {% if 'ota_wip' in row %}
+                    <td>OTA_WIP</td>
+                {% else %}
+                    <td>{{ row['ota_available']  }}<input type="checkbox" name="ota_available" value="{{ ip }}" {% if row['ota_available'] %}checked {% else %} disabled readonly{% endif %}></td>
+                {% endif %}
+                <td>{% for fname, content in row['files'].items() %}
+                    <button title="Click to show/hide content" type="button" onclick="if(document.getElementById('{{ row['name']+'_'+fname }}') .style.display=='none') {document.getElementById('{{ row['name']+'_'+fname }}') .style.display=''}else{document.getElementById('{{ row['name']+'_'+fname }}') .style.display='none'}">{{ fname }}</button>
+                    <div id="{{ row['name']+'_'+fname }}" style="display:none">{{ content }}</div>
+                    {% endfor %}
+                  </td>
+                <td> WIP </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+    </form>
+    <table>
+      <tr>
+        <td></td>
+        <td>Build:</td>
+        <td>Published at:</td>
+        <td>URL:</td>
+      </tr>
+    <p>
+      <tr>
+        <td><button onclick="location.href='/refresh_releases'">Search for OpenBeken updates</button></td>
+        <td>{{release['build']}}</td>
+        <td>{{release['published_at']}}</td>
+        <td><a href="{{release['html_url']}}" target="_blank">GitHub</a></td>
+      </tr>
+    </table>
+    <p>
+    <div id="message">{{message}}</div>
+    <!--
+    <div id="sse-updates"></div>
+      <script>//Include the JavaScript code that listens for SSE updates
+        // Get a reference to the HTML element that will display the SSE updates
+        let sseUpdates = document.getElementById('sse-updates');
+
+        // Create an EventSource object that listens for updates from the Flask route
+        let source = new EventSource('/updates');
+
+        // Listen for the 'message' event and update the HTML element with the SSE data
+        source.addEventListener('message', function(event) {
+            sseUpdates.innerHTML += event.data + '<br>';
+        });
+      </script>
+      -->
+  </body>
+</html>

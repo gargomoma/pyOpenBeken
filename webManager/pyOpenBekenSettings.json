@@ -1,0 +1,5 @@
+{
+    "host_ip": "YOUR SERVER IP HERE"
+    ,"list_ips":["LIST", "OF", "DEVICES", "IPS", "HERE"]
+    ,"gh_api_token":"your GITHUB TOKEN (create it here: https://github.com/settings/tokens?type=beta) "
+    }
