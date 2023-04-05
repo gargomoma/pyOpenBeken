@@ -23,7 +23,7 @@ class device:
         self.pins=[]
         for pin_idx,role in enumerate(pins['roles']):
             #if role != 0?
-            self.pins.append( {'pin':pin_idx,'channels':pins['channels'][pin_idx],'role':pins['rolenames'][role]} )
+            self.pins.append( {'pin':pin_idx,'channels':pins['channels'][pin_idx],'role':pins['rolenames'][role],'role_id':role} )
         return self.pins
 
     def set_pins(self,pin_roles=None):
@@ -40,6 +40,12 @@ class device:
             bool: True if the pins were successfully configured, False otherwise.
         """
         if pin_roles is None:
+            assert False
+        #Checks if it's formated in pyOpenBeken human-readable format
+        if ('channels' not in pin_roles) and ('channels' in pin_roles):
+            #if so, convert to OpenBeken's
+            pin_roles = {'channels':[pin['channels']for pin in pin_roles], 'roles':[pin['role_id']for pin in pin_roles]}
+        elif ('channels' not in pin_roles):
             assert False
         set_pins = requests.post(self.device_urls['pins'],data= pin_roles)
         if set_pins.status_code == 200:
