@@ -210,13 +210,6 @@ class device:
             self.check_ota()
         if self.ota_available:
             return self.releaseMngr.download_ota(self.otaurl) #returns filename
-        
-            #get_ota = requests.get(self.otaurl,headers= self.gh_headers )
-            #if get_ota.status_code == 200:
-            #    fname=os.path.basename(self.otaurl)
-            #    open(fname, 'wb+').write(get_ota.content)
-            #    self.slnt_print(f'OTA file saved in {os.getcwd()}/{fname}')
-            #    return fname
         else:
             self.slnt_print('No OTA is need, device is up to date.')
     
