@@ -2,6 +2,7 @@ import os
 import re
 import requests
 import time
+from .utils import releaseManager
 
 class device:
     def slnt_print(self,message):
@@ -122,15 +123,11 @@ class device:
             redownload_release (bool): A boolean that indicates whether to download the release again (default is False).
         Returns:
             A dictionary containing the latest build, published date, URL, and assets of the releases of the OpenBK7231T_App.
-        """            
-        if 'build' not in self.releases or redownload_release:
-            self.slnt_print('Retrieving releases from GH.')
-
-            latest = requests.get('https://api.github.com/repos/openshwprojects/OpenBK7231T_App/releases',headers= self.gh_headers ).json()[0]
-            self.releases = {'build':latest['name'],'published_at': latest['published_at'],'html_url': latest['html_url'],'assets': [{'name':file['name'],'browser_download_url':file['browser_download_url']} for file in latest['assets']]}
-        else:
-            self.slnt_print('Retrieving releases from memory.')
-        return self.releases
+        """
+        if not hasattr(self, 'releaseMngr'): #This way we can handle the possibility of injecting a release Manager (Useful when managing nultiple devices)
+            self.releaseMngr = releaseManager()
+        self.latest_release = self.releaseMngr.get_latest()
+        return self.latest_release
 
     def check_ota(self,redownload_release=False): 
         """
@@ -142,9 +139,9 @@ class device:
         """            
         if self.build < self.get_releases(redownload_release)['build']:
             #This way we can skip calling get_releases, and just call this method directly
-            for asset in self.releases['assets']:
+            for asset in self.latest_release['assets']:
                 if self.ota_fname_check(asset['browser_download_url']):
-                    self.slnt_print(f"OTA file found -- build:{self.releases['build']}\n{self.releases['html_url']}") 
+                    self.slnt_print(f"OTA file found -- build:{self.latest_release['build']}\n{self.latest_release['html_url']}") 
                     self.otaurl = asset['browser_download_url']
                     self.ota_available = True
                     self.ota_fname = os.path.basename(self.otaurl)
@@ -212,12 +209,14 @@ class device:
             self.slnt_print('Checking OTA...')
             self.check_ota()
         if self.ota_available:
-            get_ota = requests.get(self.otaurl,headers= self.gh_headers )
-            if get_ota.status_code == 200:
-                fname=os.path.basename(self.otaurl)
-                open(fname, 'wb+').write(get_ota.content)
-                self.slnt_print(f'OTA file saved in {os.getcwd()}/{fname}')
-                return fname
+            return self.releaseMngr.download_ota(self.otaurl) #returns filename
+        
+            #get_ota = requests.get(self.otaurl,headers= self.gh_headers )
+            #if get_ota.status_code == 200:
+            #    fname=os.path.basename(self.otaurl)
+            #    open(fname, 'wb+').write(get_ota.content)
+            #    self.slnt_print(f'OTA file saved in {os.getcwd()}/{fname}')
+            #    return fname
         else:
             self.slnt_print('No OTA is need, device is up to date.')
     
@@ -268,7 +267,7 @@ class device:
     
     def __init__(self, ip_addr,gh_token=None,silent=True):
         """
-        A class for interfacing with an OpenBK7231T device
+        A class for interfacing with OpenBeken devices
 
         Parameters:
         -----------
@@ -344,7 +343,7 @@ class device:
         self.gh_token = gh_token
         self.__build_gh_headers()
         self.is_silent = silent
-        self.releases = {} #so user can inject the releases from other chipset object avoiding multiple calls
+        #TO BE REMOVED self.latest_release = {} #so user can inject the releases from other chipset object avoiding multiple calls
         self.resetSVM_and_Start = 'backlog resetSVM; startScript /{scriptName}'
         self.board_url = f"http://{ip_addr}/"
         self.API_ENDPOINT = f"{self.board_url}api/"

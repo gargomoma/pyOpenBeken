@@ -23,11 +23,10 @@ Nobody likes to get limited by APIs quotas, get your GH API token [here](https:/
 * Connect to a single board:
 ```sh
 import pyopenbeken
-gh_api_token = 'GitHub API Token'
-your_device = pyopenbeken.device( IP_HERE,gh_api_token )
+your_device = pyopenbeken.device( IP_HERE )
 
 #Get board info
-your_device.board_info
+your_device.info
 
 #Update board
 your_device.check_ota()
@@ -37,16 +36,16 @@ your_device.push_ota(fileAddress)
 * Connect to a series of boards by providing a list of IPs:
 ```sh
 list_ips = [LIST OF IPS]
-gh_api_token = 'GitHub API Token'
+gh_api_token = 'GitHub API Token' or None
 
 import pyopenbeken
-boardMgr = pyopenbeken.BoardManager(list_ips=list_ips,gh_token=gh_api_token)
+devmgr = pyopenbeken.deviceManager(list_ips=list_ips,gh_token=gh_api_token)
 
 #Get boards info
-boardMgr.boards
+devmgr.devices
 
 #Update boards
-boardMgr.update_boards()
+devmgr.update_devices()
 ```
 
 #### Web Manager

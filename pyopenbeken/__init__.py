@@ -5,10 +5,10 @@ An easier way to manage your OpenBeken devices.
 """
 
 
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 __author__ = "Gonzalo Garcia"
 
 
 from .core import device
-from .boardmanager import BoardManager
-from .utils import ThreadManager,networkScan
+from .devicemanager import deviceManager
+from .utils import threadManager,networkScan,releaseManager

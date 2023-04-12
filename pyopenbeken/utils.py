@@ -15,7 +15,7 @@ def chunkArray(ArrObj=[], length=1):
 
 import threading
 
-class ThreadManager:
+class threadManager:
     """
     A class to manage threads.
 
@@ -82,6 +82,7 @@ class networkScan:
         self.ip_list    = ip_list
         self.bkn_ips    = []
         self.ping_echo_r = 3
+        self.ping_obk_timeout = 5
         
     def slnt_print(self,message):
         if not self.is_silent:
@@ -142,7 +143,7 @@ class networkScan:
         """        
         requests.adapters.DEFAULT_RETRIES = retries
         try:
-            board_info = requests.get(f'http://{ip_addr}/api/info', timeout=2)#.json()
+            board_info = requests.get(f'http://{ip_addr}/api/info', timeout=self.ping_obk_timeout)#.json()
             if board_info.status_code == 200:
                 return True
         except:
@@ -174,7 +175,7 @@ class networkScan:
 
         This function scans the local network for used IP addresses by pinging each IP address in the range 192.168.1.1 to 192.168.1.254. The IP addresses are divided into chunks to speed up the scanning process. The function returns a list of IP addresses that respond to ping requests.
         """
-        manager = ThreadManager()
+        manager = threadManager()
         if ip_list is None:
             ip_list = self.ip_list
 
@@ -186,7 +187,8 @@ class networkScan:
             manager.start_thread(target=self.__mt_ping , args=( ip_chunk, ) )
         manager.join_all()
         
-        self.ip_list = self.temp_mt_ips
+        #Cheat to order IPs on asc order
+        self.ip_list = [self.network_ip + x for x in sorted([x.split('.')[3] for x in self.temp_mt_ips],key=int) ]
         del self.temp_mt_ips
         return self.ip_list
     
@@ -204,7 +206,7 @@ class networkScan:
         This function scans a list of IP addresses for OpenBeken devices by pinging each IP address and trying to access the OpenBeken API at http://[ip_addr]/api/info. The IP addresses are divided into chunks to speed up the scanning process. The function returns a list of IP addresses that are running OpenBeken devices.
         """
         self.bkn_ips = []
-        manager = ThreadManager()
+        manager = threadManager()
         if ip_list is None:
             ip_list = self.ip_list
         ip_range_chunks = chunkArray( ip_list, ip_chunks_size ) #255/50 = 6 chunks
@@ -214,6 +216,99 @@ class networkScan:
             manager.start_thread(target=self.__mt_ping_obk , args=( ip_chunk, ) )
         manager.join_all()
         
-        self.bkn_ips = self.temp_mt_ips
+        self.bkn_ips = [self.network_ip + x for x in sorted([x.split('.')[3] for x in self.temp_mt_ips],key=int) ]
         del self.temp_mt_ips
-        return self.bkn_ips       
+        return self.bkn_ips
+
+import re
+import os
+class releaseManager:
+    """
+    A class to retrieve OpenBeken releases.
+    """    
+    def __init__(self, gh_token=None,silent=True):
+        self.gh_token = gh_token
+        self.is_silent = silent
+        self.__build_gh_headers()
+        
+    def slnt_print(self,message):
+        if not self.is_silent:
+            print(message)        
+            
+    def __build_gh_headers(self):
+        if self.gh_token is not None:
+            self.gh_headers = {'Authorization': 'token ' + self.gh_token}
+        else:
+            self.gh_headers = {}
+            
+    def get_releases(self,redownload_release=False):
+        """
+        Retrieves the latest release of the OpenBK7231T_App by sending a GET request to the GitHub API.
+        Args:
+            redownload_release (bool): A boolean that indicates whether to download the release again (default is False).
+        Returns:
+            A dictionary containing the latest build, published date, URL, changes, and assets of the releases of the OpenBK7231T_App.
+        """            
+        if not hasattr(self, 'releases') or redownload_release:
+            self.slnt_print('Retrieving releases from GH.')
+
+            releases = requests.get('https://api.github.com/repos/openshwprojects/OpenBK7231T_App/releases',headers= self.gh_headers ).json()
+            
+            self.releases = []
+            for release in releases:
+                self.releases.append({'build':release['name'],'published_at': release['published_at']
+                               ,'html_url': release['html_url']
+                               ,'changes' : self.__parse_changes(release['body'])
+                               ,'assets': [{'name':file['name'],'browser_download_url':file['browser_download_url']} for file in release['assets']]})
+            
+            self.latest = self.releases[0]
+        else:
+            self.slnt_print('Retrieving releases from memory.')
+        return self.releases
+            
+    def get_latest(self,redownload_release=False):
+        """
+        Retrieves the latest release of the OpenBK7231T_App by sending a GET request to the GitHub API.
+        Args:
+            redownload_release (bool): A boolean that indicates whether to download the release again (default is False).
+        Returns:
+            A dictionary containing the latest build, published date, URL, changes, and assets of the releases of the OpenBK7231T_App.
+        """
+        self.get_releases(redownload_release)
+        return self.latest
+    
+    def check_changes(self,build=None,redownload_release=False):
+        self.get_releases(redownload_release)
+        
+        changes = []
+        for release in self.releases:
+            if release['build'] == build:
+                break
+            changes.append({'build':release['build'],'changes':release['changes']})
+        return changes
+    
+    def __parse_changes(self,releaseBody=None):
+        commit_name_pattern = r"\n\* (.+) \(\["
+        commit_url_pattern = r"\((http[s]?:\/\/[^\)]+)\)"        
+        changes = releaseBody.split('###')[2].replace(' Changes\n','')
+
+        commit_name_matches = re.findall(commit_name_pattern, changes)
+        commit_url_matches  = re.findall(commit_url_pattern , changes)
+        
+        return dict(zip(commit_name_matches,commit_url_matches))
+    
+    def download_ota(self,otaurl=None):
+        """
+        Downloads an OTA file and saves it to the file system.
+        Args:
+            url (str): The URL of the OTA file to download.
+        Returns:
+            Filename.
+        """
+        assert (otaurl is not None) #TODO exceptions
+        get_ota = requests.get(otaurl,headers= self.gh_headers )
+        if get_ota.status_code == 200:
+            fname=os.path.basename(otaurl)
+            open(fname, 'wb+').write(get_ota.content)
+            self.slnt_print(f'OTA file saved in {os.getcwd()}/{fname}')
+            return fname 

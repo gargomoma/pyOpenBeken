@@ -54,10 +54,17 @@
                 {% endif %}
                 <td>{% for fname, content in row['files'].items() %}
                     <button title="Click to show/hide content" type="button" onclick="if(document.getElementById('{{ row['name']+'_'+fname }}') .style.display=='none') {document.getElementById('{{ row['name']+'_'+fname }}') .style.display=''}else{document.getElementById('{{ row['name']+'_'+fname }}') .style.display='none'}">{{ fname }}</button>
-                    <div id="{{ row['name']+'_'+fname }}" style="display:none">{{ content }}</div>
+                    <div id="{{ row['name']+'_'+fname }}" style="display:none"><table border="4"><th>{{ content }}</th></table></div>
                     {% endfor %}
                   </td>
-                <td> WIP </td>
+                <td>
+                  <button title="Click to show/hide content" type="button" onclick="if(document.getElementById('{{ row['name']+'_pins' }}') .style.display=='none') {document.getElementById('{{ row['name']+'_pins' }}') .style.display=''}else{document.getElementById('{{ row['name']+'_pins' }}') .style.display='none'}">Show Pins</button>
+                    <div id="{{ row['name']+'_pins' }}" style="display:none">
+                        <table border="4"><th>PIN</th><th>Channel</th><th>Role</th>
+                        {% for pin in row['device'].get_pins() if pin['role_id']!=0 %}
+                        <tr><td>{{ pin['pin'] }}</td><td>{{ pin['channels'] }}</td><td>{{ pin['role'] }}</td></tr>
+                        {% endfor %}</table></div>
+                  </td>
               </tr>
             {% endfor %}
           </tbody>
