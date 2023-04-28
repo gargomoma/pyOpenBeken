@@ -3,27 +3,180 @@
   <head>
     <title>pyOpenBeken</title>
     <style>
-      td, th {
+        
+        body {
+            background-color: #000000;
+            color: #00FF00;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        input {
+            background-color: #000000;
+            color: #00FF00;
+        }        
+        a {
+            color: #00FFFF;
+        }        
+        td, th {
         text-align: center;
         margin-bottom: 10px;
-      }
-      .button-group {
-        display: flex;
-        margin-bottom: 10px;
-      }
-    </style>      
+        }
+        /* Button styles */
+        .btn {
+            display: inline-block;
+            padding: 5px 5px;
+            background-color: #3d3d3d;
+            color: #00FF00;
+        }      
+            
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          // Get a reference to the "Check All" button
+          const checkAllBtn = document.querySelector('#check-all');
+
+          // Get a list of all checkboxes with name "ota_available" on the page
+          const checkboxes = document.querySelectorAll('input[type="checkbox"][name="ota_available"]');
+
+          // Add a click event listener to the "Check All" button
+          checkAllBtn.addEventListener('click', () => {
+            // Check if the "Check All" button is checked
+            const isChecked = checkAllBtn.checked;
+
+            // Loop through all checkboxes and set their "checked" property to the value of the "Check All" button
+            checkboxes.forEach(checkbox => {
+              checkbox.checked = isChecked;
+            });
+          });
+        });      
+
+        function wait(ms){
+               var start = new Date().getTime();
+               var end = start;
+               while(end < start + ms) {
+                 end = new Date().getTime();
+              }
+            };
+        function submitUpdateIPs() {
+            var checkedRows = [];
+            var rows = document.getElementsByTagName("tr");
+            for (var i = 1; i < rows.length; i++) { // Start from index 1 to skip the table header
+                var checkbox = rows[i].getElementsByTagName("input")[0];
+                if ( checkbox && ( checkbox.checked && checkbox.getAttribute("name")== "ota_available")  ) {
+                    checkedRows.push(rows[i].getElementsByTagName("td")[0].innerText); // Get the value from the first column
+                }               
+            }
+            console.log(checkedRows);
+            if (checkedRows.length>0){
+                // Create a payload object
+                var payload = {updateips: checkedRows};
+
+                // Make a POST request to the server with the payload object as JSON data
+                fetch('/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                })
+                .then(response => response.text() /*response.json()*/ )
+                .then(data => {
+                    // Handle the response from the server here
+                    alert( data );
+                    console.log(data);
+                    wait(3000); //wait 3 seconds
+                    location.reload(); 
+                })
+                .catch(error => {
+                    // Handle any error that may occur during the fetch request
+                    console.error(error);
+                });
+            }
+        };
+        function update_file(device,fileName,ip_addr) {
+            console.log(`UPDATING: ${device} - ${fileName}`)
+            var value = document.getElementById(`${device}_${fileName}_content`).value
+            console.log(value);
+            // Create a payload object
+            var payload = {ip_addr  : ip_addr,
+                           fileName : fileName,
+                           value    : value
+                          };
+            console.log(payload);
+            
+            // Make a POST request to the server with the payload object as JSON data
+                fetch('/writefs', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                })
+                .then(response => response.text() )
+                .then(data => {
+                    // Handle the response from the server here
+                    alert( data );
+                    console.log(data);
+                    wait(3000); //wait 3 seconds
+                    location.reload();                     
+                })
+                .catch(error => {
+                    // Handle any error that may occur during the fetch request
+                    console.error(error);
+                });
+            };
+        function scan_devices(method) {
+            console.log(method);
+            // Create a payload object
+            var payload = {scan_method  : method};
+            console.log(payload);            
+            // Make a POST request to the server with the payload object as JSON data
+                fetch('/scan_devices', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                })
+                .then(response => response.text() )
+                .then(data => {
+                    // Handle the response from the server here
+                    alert( data );
+                    console.log(data);
+                    wait(3000); //wait 3 seconds
+                    location.reload();                    
+                })
+                .catch(error => {
+                    // Handle any error that may occur during the fetch request
+                    console.error(error);
+                });
+            };
+            function toggleElementDisplay(elementId) {
+                var element = document.getElementById(elementId);
+                if (element.style.display === 'none') {
+                    element.style.display = '';
+                } else {
+                    element.style.display = 'none';
+                }
+            };
+    </script>
   </head>
   <body>
     <center><h2>pyOpenBeken Web Manager</h2></center>
-    <div class="button-group">
-      <button onclick="location.href='/find_devices'">Scan OpenBeken devices</button>
+<button class="btn" title="Click to show/hide content" type="button" onclick="toggleElementDisplay('scan_menu')">&#x1F503;Scan devices&#x1F503;</button>
+    <br>
+    <div id="scan_menu" style="display:none">     
+        <button class="btn" onclick="scan_devices('ip')">Scan OpenBeken devices -- IP</button><button class="btn" onclick="scan_devices('ssdp')">Scan OpenBeken devices -- SSDP</button><br><br>
+            <form method="post">
+              <label for="IPs">IP Addresses:</label>
+              <input style="width:30%;" type="text" name="IPs" id="IPs" value="{{ ','.join(list_ips) }}">
+              <button class="btn" type="submit">Refresh</button>
+            </form>
     </div>
-    <form method="post">
-      <label for="IPs">IP Addresses:</label>
-      <input type="text" name="IPs" id="IPs" value="{{ ','.join(list_ips) }}">
-      <button type="submit">Refresh</button>
-    </form>
-    <form method="post" action="/update">
+    <br>
         <table style="width:70%;" border="1">
           <thead>
             <tr>
@@ -33,7 +186,7 @@
               <th>MQTT Topic</th>
               <th>Chipset</th>
               <th>Build</th>
-              <th>OTA Available     <button type="submit">Update selected</button></th>
+              <th>OTA Available         <input type="button" class="btn" value="Update selected" onclick="submitUpdateIPs()"><br><input type="checkbox" id="check-all" checked>un/Check all</th>
               <th>Files</th>
               <th>Pins</th>                
             </tr>
@@ -42,7 +195,7 @@
             {% for ip, row in data.items() %}
               <tr>
                 <td>{{ ip }}</td>
-                <td><a href="http://{{ ip }}" target="_blank">_&#x1F527;_</a></td>                  
+                <td><a href="http://{{ ip }}" target="_blank">&#x1F527;Cfg</a> - <a href="http://{{ ip }}/app?" target="_blank">&#x1F9F0;WApp</a></td>                  
                 <td>{{ row['name'] }}</td>
                 <td>{{ row['mqtttopic'] }}</td>
                 <td>{{ row['chipset'] }}</td>
@@ -52,16 +205,19 @@
                 {% else %}
                     <td>{{ row['ota_available']  }}<input type="checkbox" name="ota_available" value="{{ ip }}" {% if row['ota_available'] %}checked {% else %} disabled readonly{% endif %}></td>
                 {% endif %}
-                <td>{% for fname, content in row['files'].items() %}
-                    <button title="Click to show/hide content" type="button" onclick="if(document.getElementById('{{ row['name']+'_'+fname }}') .style.display=='none') {document.getElementById('{{ row['name']+'_'+fname }}') .style.display=''}else{document.getElementById('{{ row['name']+'_'+fname }}') .style.display='none'}">{{ fname }}</button>
-                    <div id="{{ row['name']+'_'+fname }}" style="display:none"><table border="4"><th>{{ content }}</th></table></div>
-                    {% endfor %}
+                <td>{% if row['files'] is not none %} {% for fname, content in row['files'].items() %}
+                    <button class="btn" title="Click to show/hide content" type="button" onclick="toggleElementDisplay('{{ row['name']+'_'+fname }}')">{{ fname }}</button>
+                    <div id="{{ row['name']+'_'+fname }}" style="display:none">
+                    <textarea id="{{ row['name']+'_'+fname+'_content' }}" rows="10" cols="40">{{ content }}</textarea>
+                    <input type="button" class="btn" value="&#128190;Update file" onclick="update_file('{{ row['name']}}','{{fname}}','{{ip}}' ) ">
+                    </div>
+                    {% endfor %}{% endif %}
                   </td>
                 <td>
-                  <button title="Click to show/hide content" type="button" onclick="if(document.getElementById('{{ row['name']+'_pins' }}') .style.display=='none') {document.getElementById('{{ row['name']+'_pins' }}') .style.display=''}else{document.getElementById('{{ row['name']+'_pins' }}') .style.display='none'}">Show Pins</button>
+                  <button class="btn" title="Click to show/hide content" type="button" onclick="toggleElementDisplay('{{ row['name']+'_pins' }}')">Show Pins</button>
                     <div id="{{ row['name']+'_pins' }}" style="display:none">
                         <table border="4"><th>PIN</th><th>Channel</th><th>Role</th>
-                        {% for pin in row['device'].get_pins() if pin['role_id']!=0 %}
+                        {% for pin in row['pins'] if pin['role_id']!=0 %}
                         <tr><td>{{ pin['pin'] }}</td><td>{{ pin['channels'] }}</td><td>{{ pin['role'] }}</td></tr>
                         {% endfor %}</table></div>
                   </td>
@@ -69,23 +225,34 @@
             {% endfor %}
           </tbody>
         </table>
-    </form>
+    <br>
     <table>
       <tr>
         <td></td>
         <td>Build:</td>
         <td>Published at:</td>
         <td>URL:</td>
+        <td>Changes:</td>
       </tr>
-    <p>
       <tr>
-        <td><button onclick="location.href='/refresh_releases'">Search for OpenBeken updates</button></td>
+        <td><button class="btn" onclick="location.href='/refresh_releases'">&#x1F503;Search for OpenBeken updates</button></td>
         <td>{{release['build']}}</td>
         <td>{{release['published_at']}}</td>
         <td><a href="{{release['html_url']}}" target="_blank">GitHub</a></td>
-      </tr>
+        <td><button class="btn" title="Click to show/hide content" type="button" onclick="toggleElementDisplay('{{ 'changes' }}')">&#x1F4DC;Show changes</button></td>          
+      </tr>        
     </table>
-    <p>
+        <div id="{{ 'changes' }}" style="display:none">
+            <table border="4"><th>Build</th><th>Changes</th>
+            {% for build in build_changes %}
+            <tr>
+                <td>{{ build['build'] }}</td>
+                <td style="text-align: left"><ul>{% for change in build['changes'] %}<li><a href="{{build['changes'][change]}}" target="_blank">{{change}}</a></li>{% endfor %}</ul></td>
+            </tr>
+            {% endfor %}
+            </table></div>
+    
+    <br>
     <div id="message">{{message}}</div>
     <!--
     <div id="sse-updates"></div>
