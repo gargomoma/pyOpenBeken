@@ -50,9 +50,10 @@ class threadManager:
 
     #TODO:: def check_active_threads()
             
+import platform
+#import re
 import requests
 import socket
-import platform
 import subprocess
 
 class networkScan:
@@ -149,6 +150,28 @@ class networkScan:
         except:
             pass
             return False
+        
+    def obk_enable_SSDP(self,ip_addr='',retries=1):
+        """
+        Ping the specified IP address and try to access the OpenBeken API.
+
+        Args:
+        - ip_addr (str): The IP address to ping. Default is an empty string.
+        - retries (int): The number of retries if the request fails. Default is 1.
+
+        Returns:
+        - True if the ping was successful and the API is accessible (i.e., an OpenBeken device is found), or False otherwise.
+
+        This function pings the specified IP address and tries to access the OpenBeken API at http://[ip_addr]/api/info. If the ping and API request are successful (i.e., an OpenBeken device is found), the function returns True. Otherwise, it returns False.
+        """        
+        requests.adapters.DEFAULT_RETRIES = retries
+        try:
+            board_info = requests.get(f'http://{ip_addr}/api/cmd', data= 'startDriver SSDP' , timeout=self.ping_obk_timeout)#.json()
+            if board_info.status_code == 200:
+                return True
+        except:
+            pass
+            return False        
     
     def __mt_ping(self,ip_chunk):
         for ip in ip_chunk:
@@ -162,13 +185,16 @@ class networkScan:
                 self.temp_mt_ips.append(ip)
         return True
     
-    def get_network_ips(self,ip_list=None,ip_chunks_size = 50):
+    def sort_ips(self,ip_list):
+        return [self.network_ip + x for x in sorted([x.split('.')[3] for x in ip_list],key=int) ]
+    
+    def get_network_ips(self,ip_list=None,ip_chunks_size = 10):
         """
         Get a list of used IP addresses on the local network.
 
         Args:
         - ip_list (list): A list of IP addresses to scan. Default is None.
-        - ip_chunks_size (int): The size of the IP chunks to ping. Default is 50.
+        - ip_chunks_size (int): The size of the IP chunks to ping. Default is 10, with 1 should be faster.
 
         Returns:
         - A list of IP addresses that respond to ping requests.
@@ -188,9 +214,9 @@ class networkScan:
         manager.join_all()
         
         #Cheat to order IPs on asc order
-        self.ip_list = [self.network_ip + x for x in sorted([x.split('.')[3] for x in self.temp_mt_ips],key=int) ]
+        self.ip_list = self.sort_ips(self.temp_mt_ips)
         del self.temp_mt_ips
-        return self.ip_list
+        return self.ip_list      
     
     def obkn_api_scan(self,ip_list=None,ip_chunks_size=2):
         """
@@ -216,9 +242,59 @@ class networkScan:
             manager.start_thread(target=self.__mt_ping_obk , args=( ip_chunk, ) )
         manager.join_all()
         
-        self.bkn_ips = [self.network_ip + x for x in sorted([x.split('.')[3] for x in self.temp_mt_ips],key=int) ]
+        self.bkn_ips = self.sort_ips(self.temp_mt_ips)
         del self.temp_mt_ips
         return self.bkn_ips
+    
+    def obkn_ssdp_scan(self):
+        """
+        Get a list of OpenBeken devices using SSDP protocol.
+        Remember you need to enable the SSDP driver first!
+
+        Returns:
+        - A list of IP addresses that are running OpenBeken devices.
+        """        
+
+        # Define a regex pattern to match IP addresses
+        ip_pattern = r"\b(?:\d{1,3}\.){3}\d{1,3}\b"
+
+        # Define SSDP constants
+        SSDP_ADDR = '239.255.255.250'
+        SSDP_PORT = 1900
+
+        # Create a UDP socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.settimeout(5)
+
+        # Send an SSDP discovery request
+        req = f'''M-SEARCH * HTTP/1.1
+              'HOST: {SSDP_ADDR}:{SSDP_PORT}
+              'MAN: "ssdp:discover"
+              'MX: 2
+              'ST: openbk'''
+        #ST looks for that term.
+        sock.sendto(req.encode(), (SSDP_ADDR, SSDP_PORT))
+
+        # Receive and parse the response(s)
+        devices = []
+        while True:
+            try:
+                data, addr = sock.recvfrom(1024)
+            except socket.timeout:
+                break
+            if 'LOCATION:' in data.decode():
+                # Extract the location URL from the response
+                location = data.decode().split('LOCATION: ')[1].split('\r\n')[0]
+                if location not in devices:
+                    # Search for an IP address in the location URL using the regex pattern
+                    match = re.search(ip_pattern, location)
+                    # Extract the IP address and append to the devices list
+                    if match:
+                        ip_address = match.group(0)
+                        devices.append(ip_address)
+
+        self.bkn_ips = self.sort_ips(devices)
+        return self.bkn_ips    
 
 import re
 import os

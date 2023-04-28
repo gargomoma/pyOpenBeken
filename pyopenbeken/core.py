@@ -2,6 +2,7 @@ import os
 import re
 import requests
 import time
+from packaging import version
 from .utils import releaseManager
 
 class device:
@@ -137,7 +138,7 @@ class device:
         Returns:
             The URL of the OTA file if an update is available; otherwise, None.
         """            
-        if self.build < self.get_releases(redownload_release)['build']:
+        if version.parse(self.build) < version.parse(self.get_releases(redownload_release)['build']):
             #This way we can skip calling get_releases, and just call this method directly
             for asset in self.latest_release['assets']:
                 if self.ota_fname_check(asset['browser_download_url']):
@@ -191,7 +192,6 @@ class device:
             self.get_files()
         self.__send_ota(fileAddr)
         if backupFlow:
-            self.board_files
             for fname,content in self.board_files.items():
                 self.create_file(fname=fname,content=content)
             self.slnt_print(f'Files succesfully restored!')

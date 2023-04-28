@@ -1,5 +1,5 @@
 from .core import device
-from .utils import threadManager,networkScan,releaseManager
+from .utils import threadManager,releaseManager
 
 class deviceManager:
     def __init__(self, list_ips,gh_token=None,silent=True):
@@ -12,7 +12,12 @@ class deviceManager:
     def get_devices(self):
         devices = {}
         for board_ip in self.list_ips:
-            devices[board_ip] = self.__builddevices( device(board_ip,self.gh_token) )
+            try:
+                devices[board_ip] = self.__builddevices( device(board_ip,self.gh_token) )
+            except ConnectionError as e:
+                print('Connection error:', e)
+            except Exception as e:
+                print('An error occurred:', e)                
         self.devices=devices
         self.check_ota()
         return self.devices
@@ -24,6 +29,7 @@ class deviceManager:
                 ,'mqtttopic' : deviceOjb.info['mqtttopic']
                 ,'chipset'   : deviceOjb.chipset
                 ,'build'     : deviceOjb.build
+                ,'pins'      : deviceOjb.get_pins()
                 ,'files'     : deviceOjb.get_files()}        
     
     def check_ota(self,redownload_release=False):
@@ -32,7 +38,8 @@ class deviceManager:
             #By using an unique Release Manager we call GH once, and all share the same release info.
             board_dict['device'].releaseMngr = self.releaseMngr #One call to check'em all.
             board_dict['device'].check_ota()#1st will call GH the others will retrieve from memory.            
-            board_dict['ota_available']=board_dict['device'].ota_available        
+            board_dict['ota_available']=board_dict['device'].ota_available
+        self.min_build = min(self.devices.items(), key=lambda x:x[1]['build'])[1]['build']
     
     def update_devices(self, devices=None,is_silent=False,backupFlow=True):
         manager = threadManager()        
