@@ -3,7 +3,10 @@
   <head>
     <title>pyOpenBeken</title>
     <style>
-        
+    .container {
+        height: 500px;
+        overflow: auto; /* or overflow: scroll; */
+      }
         body {
             background-color: #000000;
             color: #00FF00;
@@ -242,7 +245,7 @@
         <td><button class="btn" title="Click to show/hide content" type="button" onclick="toggleElementDisplay('{{ 'changes' }}')">&#x1F4DC;Show changes</button></td>          
       </tr>        
     </table>
-        <div id="{{ 'changes' }}" style="display:none">
+        <div id="{{ 'changes' }}" style="display:none" class="container">
             <table border="4"><th>Build</th><th>Changes</th>
             {% for build in build_changes %}
             <tr>
@@ -251,7 +254,6 @@
             </tr>
             {% endfor %}
             </table></div>
-    
     <br>
     <div id="message">{{message}}</div>
     <!--
